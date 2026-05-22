@@ -24,7 +24,7 @@ npm start
 curl -X POST http://localhost:5000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"name":"Admin","email":"admin@company.com","password":"Admin@1234","role":"admin"}'
-```
+```  
 > NOTE: Comment out the `protect` middleware on the register route temporarily for first admin creation, then re-enable it.
 
 ## Tech Stack
