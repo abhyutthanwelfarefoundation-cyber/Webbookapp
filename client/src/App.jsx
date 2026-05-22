@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import useAuthStore from './store/authStore';
 import Navbar from './components/common/Navbar';
+import HelpPage from './pages/HelpPage';
+import ManageTickets from './pages/admin/ManageTickets';
 
 // Pages
 import LoginPage from './pages/LoginPage';
@@ -65,6 +67,12 @@ export default function App() {
           } />
           <Route path="/admin/agents" element={
             <Protected><AdminOnly><WithNav><ManageAgents /></WithNav></AdminOnly></Protected>
+          } />
+          <Route path="/help" element={
+            <Protected><WithNav><HelpPage /></WithNav></Protected>
+          } />
+          <Route path="/admin/tickets" element={
+            <Protected><AdminOnly><WithNav><ManageTickets /></WithNav></AdminOnly></Protected>
           } />
 
           {/* Default redirect */}

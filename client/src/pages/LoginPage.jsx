@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MdEmail, MdLock, MdMenuBook } from 'react-icons/md';
-import { motion } from 'framer-motion';
-import toast from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
 import Input from '../components/common/Input';
@@ -12,6 +11,7 @@ export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [loginError, setLoginError] = useState('');
   const { login } = useAuthStore();
   const navigate = useNavigate();
 
@@ -27,15 +27,16 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoginError(''); // clear previous error
     if (!validate()) return;
     setLoading(true);
     try {
       const { data } = await api.post('/auth/login', form);
       login(data.token, data.user);
-      toast.success(`Welcome back, ${data.user.name}!`);
       navigate(data.user.role === 'admin' ? '/admin' : '/dashboard');
-    } catch {
-      // Error already handled by interceptor
+    } catch (err) {
+      const message = err.response?.data?.message || 'Invalid email or password';
+      setLoginError(message);
     } finally {
       setLoading(false);
     }
@@ -62,13 +63,38 @@ export default function LoginPage() {
         <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8">
           <h2 className="text-xl font-semibold text-gray-800 mb-6">Sign in to continue</h2>
 
+          {/* Login error — stays visible */}
+          <AnimatePresence>
+            {loginError && (
+              <motion.div
+                key="login-error"
+                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
+                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                transition={{ duration: 0.25 }}
+                className="overflow-hidden"
+              >
+                <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+                  <span className="text-lg">⚠️</span>
+                  <div>
+                    <p className="font-semibold">Login Failed</p>
+                    <p className="text-red-600 text-xs mt-0.5">{loginError}</p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <Input
               label="Email address"
               type="email"
               placeholder="you@company.com"
               value={form.email}
-              onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+              onChange={e => {
+                setForm(f => ({ ...f, email: e.target.value }));
+                setLoginError(''); // clear error when user types
+              }}
               icon={<MdEmail size={18} />}
               error={errors.email}
               autoComplete="email"
@@ -78,13 +104,20 @@ export default function LoginPage() {
               type="password"
               placeholder="••••••••"
               value={form.password}
-              onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+              onChange={e => {
+                setForm(f => ({ ...f, password: e.target.value }));
+                setLoginError(''); // clear error when user types
+              }}
               icon={<MdLock size={18} />}
               error={errors.password}
               autoComplete="current-password"
             />
 
-            <Button type="submit" loading={loading} className="w-full mt-2 justify-center py-3">
+            <Button
+              type="submit"
+              loading={loading}
+              className="w-full mt-2 justify-center py-3"
+            >
               Sign in
             </Button>
           </form>

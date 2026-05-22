@@ -33,10 +33,16 @@ export default function Navbar() {
                 Admin Panel
               </Link>
             )}
-            <Link to="/dashboard"
+          <Link to="/dashboard"
               className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
               Catalog
             </Link>
+            {user?.role === 'agent' && (
+              <Link to="/help"
+                className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
+                Help
+              </Link>
+            )}
           </div>
 
           {/* User menu */}

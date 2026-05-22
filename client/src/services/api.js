@@ -1,33 +1,39 @@
 import axios from 'axios';
-import toast from 'react-hot-toast';
+
+const BACKEND_URL = process.env.REACT_APP_API_URL || '';
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: `${BACKEND_URL}/api`,
   timeout: 30000,
   headers: { 'Content-Type': 'application/json' }
 });
 
-// Attach JWT to every request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Handle errors globally
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    const message = err.response?.data?.message || 'Something went wrong';
+    const status = err.response?.status;
+    const url = err.config?.url || '';
 
-    if (err.response?.status === 401) {
+    // NEVER redirect or toast on login route errors
+    // Let the login page handle its own errors
+    if (url.includes('/auth/login')) {
+      return Promise.reject(err);
+    }
+
+    // Only redirect to login if token expired on OTHER routes
+    if (status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
       return Promise.reject(err);
     }
 
-    if (err.response?.status !== 404) toast.error(message);
     return Promise.reject(err);
   }
 );
