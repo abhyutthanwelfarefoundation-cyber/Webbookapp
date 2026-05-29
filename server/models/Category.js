@@ -24,7 +24,11 @@ const categorySchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
-  }
+  },
+  coverKey: {
+    type: String,
+    default: null
+  },
 }, { timestamps: true });
 
 // Auto-generate slug

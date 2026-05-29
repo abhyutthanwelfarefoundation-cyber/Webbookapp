@@ -42,6 +42,8 @@ export default function ManageCategories() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editCat, setEditCat] = useState(null);
   const [form, setForm] = useState({ name: '', parentId: '' });
+  const [coverFile, setCoverFile] = useState(null);
+  const [coverPreview, setCoverPreview] = useState(null);
 
   const { data: rawData, isLoading } = useQuery({
     queryKey: ['categories'],
@@ -59,12 +61,12 @@ export default function ManageCategories() {
   const flat = flatCats(categories);
 
   const createMutation = useMutation({
-    mutationFn: (d) => api.post('/categories', d),
+    mutationFn: (fd) => api.post('/categories', fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
     onSuccess: () => { qc.invalidateQueries(['categories']); toast.success('Category created'); closeModal(); }
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => api.put(`/categories/${id}`, data),
+    mutationFn: ({ id, data }) => api.put(`/categories/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
     onSuccess: () => { qc.invalidateQueries(['categories']); toast.success('Category updated'); closeModal(); }
   });
 
@@ -73,19 +75,27 @@ export default function ManageCategories() {
     onSuccess: () => { qc.invalidateQueries(['categories']); toast.success('Category deleted'); }
   });
 
-  const closeModal = () => { setModalOpen(false); setEditCat(null); setForm({ name: '', parentId: '' }); };
-
-  const openEdit = (cat) => {
-    setEditCat(cat);
-    setForm({ name: cat.name, parentId: String(cat.parentId || '') });
-    setModalOpen(true);
+ const closeModal = () => {
+    setModalOpen(false); setEditCat(null);
+    setForm({ name: '', parentId: '' });
+    setCoverFile(null); setCoverPreview(null);
   };
 
+ const openEdit = (cat) => {
+    setEditCat(cat);
+    setForm({ name: cat.name, parentId: String(cat.parentId || '') });
+    setCoverPreview(cat.coverUrl || null);
+    setCoverFile(null);
+    setModalOpen(true);
+  };
   const handleSubmit = () => {
     if (!form.name.trim()) return toast.error('Category name is required');
-    const payload = { name: form.name, parentId: form.parentId || null };
-    if (editCat) updateMutation.mutate({ id: editCat._id, data: payload });
-    else createMutation.mutate(payload);
+    const fd = new FormData();
+    fd.append('name', form.name);
+    if (form.parentId) fd.append('parentId', form.parentId);
+    if (coverFile) fd.append('cover', coverFile);
+    if (editCat) updateMutation.mutate({ id: editCat._id, data: fd });
+    else createMutation.mutate(fd);
   };
 
   if (isLoading) return <Loader text="Loading categories..." />;
@@ -138,6 +148,68 @@ export default function ManageCategories() {
                 <option key={c._id} value={c._id}>{c.name}</option>
               ))}
             </select>
+          </div>
+          {/* Cover image upload */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-gray-700">
+              Cover Image <span className="text-gray-400 font-normal">(optional — shows on catalog)</span>
+            </label>
+            <label style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              justifyContent: 'center', border: '2px dashed #E5E7EB',
+              borderRadius: 12, padding: 16, cursor: 'pointer',
+              background: '#FAFAFA', transition: 'border-color 0.2s',
+              position: 'relative', overflow: 'hidden',
+              minHeight: coverPreview ? 140 : 90
+            }}>
+              {coverPreview ? (
+                <div style={{ position: 'relative', width: '100%' }}>
+                  <img
+                    src={coverPreview}
+                    alt="cover preview"
+                    style={{ width: '100%', maxHeight: 120, objectFit: 'cover', borderRadius: 8, display: 'block' }}
+                  />
+                  <div style={{
+                    position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)',
+                    borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    opacity: 0, transition: 'opacity 0.2s'
+                  }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                    onMouseLeave={e => e.currentTarget.style.opacity = 0}
+                  >
+                    <span style={{ color: '#fff', fontSize: 13, fontWeight: 500 }}>Click to change</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <MdFolder size={28} style={{ color: '#9CA3AF', marginBottom: 6 }} />
+                  <span style={{ fontSize: 13, color: '#9CA3AF' }}>Click to upload cover image</span>
+                  <span style={{ fontSize: 11, color: '#D1D5DB', marginTop: 3 }}>JPG, PNG up to 5MB</span>
+                </>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={e => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  setCoverFile(file);
+                  const reader = new FileReader();
+                  reader.onload = ev => setCoverPreview(ev.target.result);
+                  reader.readAsDataURL(file);
+                }}
+              />
+            </label>
+            {coverFile && (
+              <button
+                type="button"
+                onClick={() => { setCoverFile(null); setCoverPreview(editCat?.coverUrl || null); }}
+                style={{ fontSize: 12, color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+              >
+                ✕ Remove new image
+              </button>
+            )}
           </div>
           <div className="flex gap-3 justify-end mt-2">
             <Button variant="secondary" onClick={closeModal}>Cancel</Button>

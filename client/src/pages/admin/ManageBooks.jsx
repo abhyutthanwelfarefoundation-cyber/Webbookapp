@@ -8,6 +8,8 @@ import Modal from '../../components/common/Modal';
 import Input from '../../components/common/Input';
 import Loader from '../../components/common/Loader';
 import Card from '../../components/common/Card';
+import { Document, Page, pdfjs } from 'react-pdf';
+pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
 export default function ManageBooks() {
   const qc = useQueryClient();
@@ -93,16 +95,32 @@ const closeModal = () => { setModalOpen(false); setEditBook(null); setForm({ tit
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {data?.books?.map(book => (
           <Card key={book._id} className="overflow-hidden">
-            <div className="aspect-[3/2] bg-gradient-to-br from-indigo-50 to-blue-50 relative">
-              {book.coverUrl ? (
-                <img src={book.coverUrl} alt={book.title} className="w-full h-full object-cover" />
-              ) : (
-                <div className="flex items-center justify-center h-full"><MdBook size={40} className="text-indigo-200" /></div>
-              )}
-              <span className={`absolute top-2 right-2 text-xs font-medium px-2 py-1 rounded-lg ${statusColors[book.processingStatus]}`}>
-                {book.processingStatus}
-              </span>
-            </div>
+            <div style={{ aspectRatio: '3/4', background: '#f1f5f9', position: 'relative', overflow: 'hidden' }}>
+                {book.coverUrl ? (
+                  <img src={book.coverUrl} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                ) : book.pdfKey && book.processingStatus === 'done' ? (
+                  <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
+                    <Document
+                      file={{ url: `https://adoiilauzxxffnwlnono.supabase.co/storage/v1/object/public/digital-books/${book.pdfKey}` }}
+                      loading="" error=""
+                    >
+                      <Page pageNumber={1} width={280} renderTextLayer={false} renderAnnotationLayer={false} />
+                    </Document>
+                  </div>
+                ) : (
+                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <MdBook size={40} style={{ color: '#c7d2fe' }} />
+                  </div>
+                )}
+                <span style={{
+                  position: 'absolute', top: 8, right: 8,
+                  background: book.processingStatus === 'done' ? 'rgba(16,185,129,0.9)' : book.processingStatus === 'processing' ? 'rgba(245,158,11,0.9)' : 'rgba(239,68,68,0.9)',
+                  color: '#fff', fontSize: 10, fontWeight: 600,
+                  padding: '3px 8px', borderRadius: 6, textTransform: 'uppercase'
+                }}>
+                  {book.processingStatus}
+                </span>
+              </div>
             <div className="p-4">
               <p className="font-semibold text-gray-800 line-clamp-1">{book.title}</p>
               <p className="text-xs text-gray-400 mt-1">{book.categoryId?.name} · {book.totalPages} pages</p>

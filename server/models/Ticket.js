@@ -19,7 +19,7 @@ const ticketSchema = new mongoose.Schema({
   message: {
     type: String,
     required: true,
-    maxlength: 1000
+    maxlength: 1000 
   },
   status: {
     type: String,

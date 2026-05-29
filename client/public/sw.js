@@ -1,4 +1,4 @@
-const CACHE = 'bookpresent-v1';
+const CACHE = 'bookpresent-v2';
 const STATIC = [
   '/',
   '/static/js/bundle.js',
@@ -6,7 +6,6 @@ const STATIC = [
   '/manifest.json'
 ];
 
-// Install — cache static files
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE).then(cache => cache.addAll(STATIC))
@@ -14,7 +13,6 @@ self.addEventListener('install', e => {
   self.skipWaiting();
 });
 
-// Activate — clean old caches
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
@@ -24,35 +22,37 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// Fetch — serve from cache, fall back to network
 self.addEventListener('fetch', e => {
-  // Cache PDF files from Supabase for offline use
-  if (e.request.url.includes('supabase.co')) {
-    e.respondWith(
-      caches.open(CACHE).then(async cache => {
+  // Only handle GET requests
+  if (e.request.method !== 'GET') return;
+
+  // Skip non-http requests
+  if (!e.request.url.startsWith('http')) return;
+
+  e.respondWith(
+    caches.open(CACHE).then(async cache => {
+      try {
+        // Try network first
+        const networkResponse = await fetch(e.request);
+
+        // Only cache successful responses
+        if (networkResponse && networkResponse.status === 200) {
+          // Clone before caching — original goes to browser
+          cache.put(e.request, networkResponse.clone());
+        }
+
+        return networkResponse;
+      } catch (err) {
+        // Network failed — try cache
         const cached = await cache.match(e.request);
         if (cached) return cached;
-        try {
-          const response = await fetch(e.request);
-          cache.put(e.request, response.clone());
-          return response;
-        } catch {
-          return cached || new Response('Offline', { status: 503 });
-        }
-      })
-    );
-    return;
-  }
 
-  // Network first for API, cache first for assets
-  e.respondWith(
-    caches.match(e.request).then(cached => {
-      return fetch(e.request).then(response => {
-        if (response.ok && e.request.method === 'GET') {
-          caches.open(CACHE).then(c => c.put(e.request, response.clone()));
-        }
-        return response;
-      }).catch(() => cached || new Response('Offline', { status: 503 }));
+        // Nothing available
+        return new Response('Offline - content not available', {
+          status: 503,
+          statusText: 'Service Unavailable'
+        });
+      }
     })
   );
 });

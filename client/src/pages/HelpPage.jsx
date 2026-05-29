@@ -152,7 +152,7 @@ export default function HelpPage() {
               value={form.message}
               onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
               placeholder="Describe your issue in detail..."
-              rows={4}
+              rows={4}    
               className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
             />
           </div>

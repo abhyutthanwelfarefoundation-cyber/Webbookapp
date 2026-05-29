@@ -8,13 +8,19 @@ const sendResponse = require('../utils/sendResponse');
 exports.getAllCategories = catchAsync(async (req, res) => {
   const categories = await Category.find({ isActive: true }).sort('order name');
 
-  // Build tree structure
+  const SUPABASE = 'https://adoiilauzxxffnwlnono.supabase.co/storage/v1/object/public/digital-books';
+
+  const withCovers = categories.map(cat => ({
+    ...cat.toObject(),
+    coverUrl: cat.coverKey ? `${SUPABASE}/${cat.coverKey}` : null
+  }));
+
   const buildTree = (items, parentId = null) =>
     items
       .filter(i => String(i.parentId) === String(parentId))
-      .map(i => ({ ...i.toObject(), children: buildTree(items, i._id) }));
+      .map(i => ({ ...i, children: buildTree(items, i._id) }));
 
-  const tree = buildTree(categories);
+  const tree = buildTree(withCovers);
   sendResponse(res, 200, { categories: tree });
 });
 
@@ -37,7 +43,22 @@ exports.getCategory = catchAsync(async (req, res, next) => {
 // @POST /api/categories  (Admin only)
 exports.createCategory = catchAsync(async (req, res) => {
   const { name, parentId, order } = req.body;
-  const category = await Category.create({ name, parentId: parentId || null, order: order || 0 });
+
+  let coverKey = null;
+  if (req.file) {
+    const { uploadToS3, keys } = require('../services/s3Service');
+    const tempId = new Date().getTime().toString();
+    coverKey = `categories/${tempId}-cover.jpg`;
+    await uploadToS3(coverKey, req.file.buffer, req.file.mimetype);
+  }
+
+  const category = await Category.create({
+    name,
+    parentId: parentId || null,
+    order: order || 0,
+    coverKey
+  });
+
   sendResponse(res, 201, { category }, 'Category created');
 });
 
@@ -45,14 +66,25 @@ exports.createCategory = catchAsync(async (req, res) => {
 exports.updateCategory = catchAsync(async (req, res, next) => {
   const { name, parentId, order, isActive } = req.body;
 
-  // Prevent setting itself as parent
-  if (String(parentId) === String(req.params.id)) {
+  if (parentId && String(parentId) === String(req.params.id)) {
     return next(new AppError('Category cannot be its own parent.', 400));
+  }
+
+  let updateData = { name, isActive };
+  if (parentId !== undefined) updateData.parentId = parentId || null;
+  if (order !== undefined) updateData.order = order;
+
+  // Handle new cover image upload
+  if (req.file) {
+    const { uploadToS3 } = require('../services/s3Service');
+    const coverKey = `categories/${req.params.id}-cover${Date.now()}.jpg`;
+    await uploadToS3(coverKey, req.file.buffer, req.file.mimetype);
+    updateData.coverKey = coverKey;
   }
 
   const category = await Category.findByIdAndUpdate(
     req.params.id,
-    { name, parentId, order, isActive },
+    updateData,
     { new: true, runValidators: true }
   );
 
@@ -76,3 +108,5 @@ exports.deleteCategory = catchAsync(async (req, res, next) => {
   await category.deleteOne();
   sendResponse(res, 200, {}, 'Category deleted');
 });
+
+

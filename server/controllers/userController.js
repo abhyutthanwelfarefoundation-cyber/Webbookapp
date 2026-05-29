@@ -18,17 +18,21 @@ exports.getUser = catchAsync(async (req, res, next) => {
 
 // @PUT /api/users/:id  (Admin only)
 exports.updateUser = catchAsync(async (req, res, next) => {
-  const { name, email, isActive } = req.body;
+  const { name, email, isActive, password } = req.body;
 
-  // Never update password through this route
-  const user = await User.findByIdAndUpdate(
-    req.params.id,
-    { name, email, isActive },
-    { new: true, runValidators: true }
-  ).select('-__v');
-
+  const user = await User.findById(req.params.id);
   if (!user) return next(new AppError('User not found.', 404));
-  sendResponse(res, 200, { user }, 'User updated');
+
+  if (name) user.name = name;
+  if (email) user.email = email;
+  if (isActive !== undefined) user.isActive = isActive;
+  if (password) user.password = password; // will be hashed by pre-save hook
+
+  await user.save();
+
+  sendResponse(res, 200, {
+    user: { id: user._id, name: user.name, email: user.email, isActive: user.isActive, role: user.role }
+  }, 'Agent updated');
 });
 
 // @DELETE /api/users/:id  (Admin only)
