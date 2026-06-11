@@ -51,6 +51,7 @@ export default function VisitLogPage() {
   const [selfiePreview, setSelfiePreview] = useState(null);
   const [selfieFile, setSelfieFile] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const [editVisit, setEditVisit] = useState(null);
   const fileRef = useRef(null);
 
   const [form, setForm] = useState({
@@ -76,17 +77,39 @@ export default function VisitLogPage() {
     onSuccess: () => { qc.invalidateQueries(['visits']); toast.success('Visit deleted'); }
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, fd }) => api.put(`/visits/${id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 60000 }),
+    onSuccess: () => { qc.invalidateQueries(['visits']); toast.success('Visit updated!'); closeModal(); }
+  });
+
   const closeModal = () => {
-    setModalOpen(false); setSelfiePreview(null); setSelfieFile(null);
+    setModalOpen(false); setSelfiePreview(null); setSelfieFile(null); setEditVisit(null);
     setForm({ schoolName: '', principalName: '', teacherName: '', designation: '', phoneNumber: '', notes: '', outcome: 'pending', visitDate: new Date().toISOString().split('T')[0] });
   };
+  const openEdit = (visit) => {
+    setEditVisit(visit);
+    setForm({
+      schoolName: visit.schoolName || '',
+      principalName: visit.principalName || '',
+      teacherName: visit.teacherName || '',
+      designation: visit.designation || '',
+      phoneNumber: visit.phoneNumber || '',
+      notes: visit.notes || '',
+      outcome: visit.outcome || 'pending',
+      visitDate: visit.visitDate ? new Date(visit.visitDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+    });
+    setSelfiePreview(visit.selfieUrl || null);
+    setSelfieFile(null);
+    setModalOpen(true);
+  };
 
-  const handleSubmit = () => {
+ const handleSubmit = () => {
     if (!form.schoolName.trim()) return toast.error('School name is required');
     const fd = new FormData();
     Object.entries(form).forEach(([k, v]) => fd.append(k, v));
     if (selfieFile) fd.append('selfie', selfieFile);
-    createMutation.mutate(fd);
+    if (editVisit) updateMutation.mutate({ id: editVisit._id, fd });
+    else createMutation.mutate(fd);
   };
 
   const handleSelfie = (e) => {
@@ -200,10 +223,17 @@ export default function VisitLogPage() {
                             </div>
                           )}
                         </div>
-                        <button onClick={() => { if (window.confirm('Delete?')) deleteMutation.mutate(visit._id); }}
-                          style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 12, background: 'none', border: '1px solid #FECACA', borderRadius: 8, padding: '6px 12px', color: '#ef4444', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-                          <MdDelete size={14} /> Delete Visit
-                        </button>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                          <button
+                            onClick={() => openEdit(visit)}
+                            style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 8, padding: '6px 12px', color: '#6366f1', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                            ✏️ Edit Visit
+                          </button>
+                          <button onClick={() => { if (window.confirm('Delete?')) deleteMutation.mutate(visit._id); }}
+                            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px solid #FECACA', borderRadius: 8, padding: '6px 12px', color: '#ef4444', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                            <MdDelete size={14} /> Delete
+                          </button>
+                        </div>
                       </div>
                     </motion.div>
                   )}
@@ -246,8 +276,12 @@ export default function VisitLogPage() {
               {/* Header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 20px 16px' }}>
                 <div>
-                  <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#111827' }}>Log School Visit</h2>
-                  <p style={{ margin: '2px 0 0', fontSize: 12, color: '#9CA3AF' }}>Fill in the details of your visit</p>
+                 <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#111827' }}>
+                    {editVisit ? '✏️ Edit Visit' : 'Log School Visit'}
+                  </h2>
+                  <p style={{ margin: '2px 0 0', fontSize: 12, color: '#9CA3AF' }}>
+                    {editVisit ? 'Update the visit details' : 'Fill in the details of your visit'}
+                  </p>
                 </div>
                 <button onClick={closeModal} style={{ background: '#F3F4F6', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#6B7280' }}>
                   <MdClose size={18} />
@@ -344,7 +378,7 @@ export default function VisitLogPage() {
                   </button>
                   <button
                     onClick={handleSubmit}
-                    disabled={createMutation.isPending}
+                    disabled={createMutation.isPending || updateMutation.isPending}
                     style={{
                       flex: 2, background: createMutation.isPending ? '#A5B4FC' : 'linear-gradient(135deg,#6366f1,#8b5cf6)',
                       border: 'none', borderRadius: 12, padding: '13px 0',
@@ -356,7 +390,7 @@ export default function VisitLogPage() {
                     {createMutation.isPending ? (
                       <><div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} /> Saving...</>
                     ) : (
-                      <><MdCheckCircle size={18} /> Save Visit</>
+                     <><MdCheckCircle size={18} /> {editVisit ? 'Update Visit' : 'Save Visit'}</>
                     )}
                   </button>
                 </div>

@@ -1,8 +1,9 @@
 const express = require('express');
 const multer = require('multer');
 const router = express.Router();
-const { createVisit, getVisits, getVisitStats, deleteVisit } = require('../controllers/visitController');
+const {  getVisits, getVisitStats, deleteVisit } = require('../controllers/visitController');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
+const { createVisit,updateVisit } = require('../controllers/visitController');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -18,5 +19,5 @@ router.get('/stats', restrictTo('admin'), getVisitStats);
 router.get('/', getVisits);
 router.post('/', upload.single('selfie'), createVisit);
 router.delete('/:id', deleteVisit);
-
+router.put('/:id', upload.single('selfie'), updateVisit);
 module.exports = router;

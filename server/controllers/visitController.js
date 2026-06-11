@@ -93,3 +93,32 @@ exports.deleteVisit = catchAsync(async (req, res, next) => {
   await visit.deleteOne();
   sendResponse(res, 200, {}, 'Visit deleted');
 });
+
+// @PUT /api/visits/:id
+exports.updateVisit = catchAsync(async (req, res, next) => {
+  const visit = await Visit.findById(req.params.id);
+  if (!visit) return next(new AppError('Visit not found.', 404));
+
+  if (req.user.role !== 'admin' && String(visit.agentId) !== String(req.user._id)) {
+    return next(new AppError('Not authorised.', 403));
+  }
+
+  const { schoolName, principalName, teacherName, designation, phoneNumber, notes, outcome, visitDate } = req.body;
+
+  let selfieKey = visit.selfieKey;
+  if (req.file) {
+    selfieKey = `visits/${visit.agentId}/${Date.now()}-selfie.jpg`;
+    await uploadToS3(selfieKey, req.file.buffer, req.file.mimetype);
+  }
+
+  const updated = await Visit.findByIdAndUpdate(
+    req.params.id,
+    { schoolName, principalName, teacherName, designation, phoneNumber, notes, outcome, visitDate, selfieKey },
+    { new: true, runValidators: true }
+  ).populate('agentId', 'name email');
+
+  const obj = updated.toObject();
+  if (selfieKey) obj.selfieUrl = `${SUPABASE}/${selfieKey}`;
+
+  sendResponse(res, 200, { visit: obj }, 'Visit updated');
+});
