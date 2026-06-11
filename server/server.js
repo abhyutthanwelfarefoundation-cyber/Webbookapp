@@ -64,6 +64,7 @@ app.use('/api/users',      require('./routes/userRoutes'));
 app.use('/api/categories', require('./routes/categoryRoutes'));
 app.use('/api/books',      require('./routes/bookRoutes'));
 app.use('/api/tickets', require('./routes/ticketRoutes'));
+app.use('/api/visits', require('./routes/visitRoutes'));  
 
 // ── Health check ──────────────────────────────────────────
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));

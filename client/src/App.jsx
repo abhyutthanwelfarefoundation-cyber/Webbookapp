@@ -14,6 +14,8 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import ManageBooks from './pages/admin/ManageBooks';
 import ManageCategories from './pages/admin/ManageCategories';
 import ManageAgents from './pages/admin/ManageAgents';
+import VisitLogPage from './pages/VisitLogPage';
+import ManageVisits from './pages/admin/ManageVisits';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 60 * 1000 } }
@@ -53,6 +55,13 @@ export default function App() {
           } />
           <Route path="/book/:id" element={
             <Protected><FlipbookPage /></Protected>
+          } />
+
+          <Route path="/visits" element={
+            <Protected><WithNav><VisitLogPage /></WithNav></Protected>
+          } />
+          <Route path="/admin/visits" element={
+            <Protected><AdminOnly><WithNav><ManageVisits /></WithNav></AdminOnly></Protected>
           } />
 
           {/* Admin routes */}

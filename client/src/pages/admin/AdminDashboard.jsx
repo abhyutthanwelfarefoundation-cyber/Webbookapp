@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { MdBook, MdFolder, MdPeople, MdAdd, MdHelp } from 'react-icons/md';
+import { MdBook, MdFolder, MdPeople, MdAdd, MdHelp , MdSchool } from 'react-icons/md';
 import { motion } from 'framer-motion';
 import api from '../../services/api';
 import Card from '../../components/common/Card';
@@ -24,6 +24,10 @@ export default function AdminDashboard() {
   const { data: cats } = useQuery({ queryKey: ['categories'], queryFn: () => api.get('/categories').then(r => r.data) });
   const { data: users } = useQuery({ queryKey: ['users'], queryFn: () => api.get('/users').then(r => r.data) });
   const { data: tickets } = useQuery({ queryKey: ['tickets'], queryFn: () => api.get('/tickets').then(r => r.data) });
+  const { data: statsData } = useQuery({
+    queryKey: ['visitStats'],
+    queryFn: () => api.get('/visits/stats').then(r => r.data)
+  });
 
   const openTickets = tickets?.tickets?.filter(t => t.status === 'open').length || 0;
 
@@ -38,7 +42,8 @@ export default function AdminDashboard() {
     { to: '/admin/books', icon: <MdBook size={20} className="text-indigo-600" />, label: 'Manage Books', desc: 'Upload, edit, delete books' },
     { to: '/admin/categories', icon: <MdFolder size={20} className="text-emerald-600" />, label: 'Manage Categories', desc: 'Organise your catalog tree' },
     { to: '/admin/agents', icon: <MdPeople size={20} className="text-blue-600" />, label: 'Manage Agents', desc: 'Add and manage agent accounts' },
-    { to: '/admin/tickets', icon: <MdHelp size={20} className="text-purple-600" />, label: 'Support Tickets', desc: `${openTickets} open ticket${openTickets !== 1 ? 's' : ''}` }
+    { to: '/admin/tickets', icon: <MdHelp size={20} className="text-purple-600" />, label: 'Support Tickets', desc: `${openTickets} open ticket${openTickets !== 1 ? 's' : ''}` },
+    { to: '/admin/visits', icon: <MdSchool size={20} className="text-green-600" />, label: 'School Visits', desc: `${statsData?.todayCount || 0} visits today` },
   ];
 
   return (
@@ -91,3 +96,4 @@ export default function AdminDashboard() {
     </div>
   );
 }
+

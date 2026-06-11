@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { motion } from 'framer-motion';
+const isMobileView = window.innerWidth < 640;
 
 pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
@@ -175,8 +176,8 @@ export default function BookCard({ book, index }) {
                     onLoadError={() => setCoverError(true)}
                   >
                     <Page
-                      pageNumber={1}
-                      width={220}
+                        pageNumber={1}
+                        width={isMobileView ? 140 : 220}
                       renderTextLayer={false}
                       renderAnnotationLayer={false}
                       onRenderSuccess={() => setCoverReady(true)}
@@ -202,7 +203,7 @@ export default function BookCard({ book, index }) {
             <span style={{
               background: '#fff', color: '#1e1b4b',
               fontSize: 10, fontWeight: 700,
-              padding: '4px 12px', borderRadius: 20,
+              padding: '4px 12px', borderRadius: 20,    
               letterSpacing: 0.5, textTransform: 'uppercase'
             }}>
               Open →

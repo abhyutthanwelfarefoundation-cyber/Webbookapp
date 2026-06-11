@@ -4,7 +4,7 @@ const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/AppError');
 const sendResponse = require('../utils/sendResponse');
 
-// Generate JWT
+// Generate JWT          
 const signToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, {
   expiresIn: process.env.JWT_EXPIRE
 });
@@ -23,6 +23,8 @@ exports.register = catchAsync(async (req, res, next) => {
     user: { id: user._id, name: user.name, email: user.email, role: user.role }
   }, 'Account created successfully');
 });
+
+ 
 
 // @POST /api/auth/login
 exports.login = catchAsync(async (req, res, next) => {
