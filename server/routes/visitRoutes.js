@@ -21,3 +21,5 @@ router.post('/', upload.single('selfie'), createVisit);
 router.delete('/:id', deleteVisit);
 router.put('/:id', upload.single('selfie'), updateVisit);
 module.exports = router;
+
+
