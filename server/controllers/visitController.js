@@ -18,15 +18,20 @@ exports.createVisit = catchAsync(async (req, res, next) => {
     await uploadToS3(selfieKey, req.file.buffer, req.file.mimetype);
   }
 
-  const visit = await Visit.create({
+const visit = await Visit.create({
     agentId: req.user._id,
     schoolName, principalName, teacherName,
     designation, phoneNumber, notes, outcome,
     booksShown: booksShown ? JSON.parse(booksShown) : [],
     selfieKey,
-    visitDate: visitDate || new Date()
+    visitDate: visitDate || new Date(),
+    location: {
+      latitude: req.body.latitude ? parseFloat(req.body.latitude) : null,
+      longitude: req.body.longitude ? parseFloat(req.body.longitude) : null,
+      address: req.body.address || ''
+    }
   });
-
+  
   const populated = await visit.populate('agentId', 'name email');
 
   const visitObj = populated.toObject();
@@ -113,7 +118,12 @@ exports.updateVisit = catchAsync(async (req, res, next) => {
 
   const updated = await Visit.findByIdAndUpdate(
     req.params.id,
-    { schoolName, principalName, teacherName, designation, phoneNumber, notes, outcome, visitDate, selfieKey },
+    {  schoolName, principalName, teacherName, designation, phoneNumber, notes, outcome, visitDate, selfieKey,
+      location: {
+        latitude: req.body.latitude ? parseFloat(req.body.latitude) : null,
+        longitude: req.body.longitude ? parseFloat(req.body.longitude) : null,
+        address: req.body.address || ''
+      }},
     { new: true, runValidators: true }
   ).populate('agentId', 'name email');
 

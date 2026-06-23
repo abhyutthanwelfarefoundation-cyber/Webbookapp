@@ -58,7 +58,12 @@ const visitSchema = new mongoose.Schema({
   visitDate: {
     type: Date,
     default: Date.now
-  }
+  },
+  location: {
+    latitude: { type: Number, default: null },
+    longitude: { type: Number, default: null },
+    address: { type: String, default: '' }
+  },
 }, { timestamps: true });
 
 visitSchema.index({ agentId: 1, visitDate: -1 });
