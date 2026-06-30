@@ -24,19 +24,28 @@ export default function LoginPage() {
     return Object.keys(e).length === 0;
   };
 
+const [slowMessage, setSlowMessage] = useState(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoginError('');
     if (!validate()) return;
     setLoading(true);
+    setSlowMessage(false);
+
+    const slowTimer = setTimeout(() => setSlowMessage(true), 5000);
+
     try {
       const { data } = await api.post('/auth/login', form);
+      clearTimeout(slowTimer);
       login(data.token, data.user);
       navigate(data.user.role === 'admin' ? '/admin' : '/dashboard');
     } catch (err) {
+      clearTimeout(slowTimer);
       const message = err.response?.data?.message || 'Invalid email or password';
       setLoginError(message);
       setLoading(false);
+      setSlowMessage(false);
     }
   };
 
@@ -299,10 +308,10 @@ export default function LoginPage() {
                 boxShadow: '0 4px 16px rgba(99,102,241,0.3)'
               }}
             >
-              {loading ? (
+             {loading ? (
                 <>
                   <div style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-                  Signing in...
+                  {slowMessage ? 'Waking up server, please wait...' : 'Signing in...'}
                 </>
               ) : 'Sign in to continue →'}
             </button>
