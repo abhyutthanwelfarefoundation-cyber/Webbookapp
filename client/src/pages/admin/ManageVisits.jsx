@@ -19,6 +19,9 @@ export default function ManageVisits() {
   const qc = useQueryClient();
   const [filter, setFilter] = useState('all');
   const [expandedId, setExpandedId] = useState(null);
+    const [searchSchool, setSearchSchool] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const { data: statsData } = useQuery({
     queryKey: ['visitStats'],
@@ -39,9 +42,14 @@ export default function ManageVisits() {
 
   const getOutcome = (val) => OUTCOMES.find(o => o.value === val) || OUTCOMES[1];
 
-  const filtered = filter === 'all'
-    ? data?.visits || []
-    : (data?.visits || []).filter(v => v.outcome === filter);
+const filtered = (data?.visits || []).filter(v => {
+    if (filter !== 'all' && v.outcome !== filter) return false;
+    if (searchSchool && !v.schoolName?.toLowerCase().includes(searchSchool.toLowerCase())) return false;
+    const vDate = new Date(v.visitDate);
+    if (dateFrom && vDate < new Date(dateFrom)) return false;
+    if (dateTo && vDate > new Date(dateTo + 'T23:59:59')) return false;
+    return true;
+  });
 
   if (isLoading) return <Loader text="Loading visits..." />;
 
@@ -70,6 +78,38 @@ export default function ManageVisits() {
           </div>
         ))}
       </div>
+
+{/* Search + date filters */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
+        <input
+          placeholder="🔍 Search school name..."
+          value={searchSchool}
+          onChange={e => setSearchSchool(e.target.value)}
+          style={{ border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '9px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
+        />
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={e => setDateFrom(e.target.value)}
+          placeholder="From date"
+          style={{ border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '9px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
+        />
+        <input
+          type="date"
+          value={dateTo}
+          onChange={e => setDateTo(e.target.value)}
+          placeholder="To date"
+          style={{ border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '9px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
+        />
+      </div>
+      {(searchSchool || dateFrom || dateTo) && (
+        <button
+          onClick={() => { setSearchSchool(''); setDateFrom(''); setDateTo(''); }}
+          style={{ marginBottom: 16, background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '5px 12px', color: '#ef4444', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          ✕ Clear filters
+        </button>
+      )}
 
       {/* Filter tabs */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>

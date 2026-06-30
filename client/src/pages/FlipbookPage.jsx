@@ -87,6 +87,8 @@ export default function FlipbookPage() {
   const [showControls, setShowControls] = useState(true);
   const [ready, setReady] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
+  const [zoom, setZoom] = useState(1);
+
 
   // Mobile flip state
   const [flipping, setFlipping] = useState(false);
@@ -262,6 +264,12 @@ export default function FlipbookPage() {
                 {loadProgress < 100 && ` · ${loadProgress}%`}
               </span>
             </div>
+           <button
+              onClick={() => setZoom(z => z >= 2 ? 1 : z + 0.5)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, marginRight: 4, fontSize: 17 }}
+            >
+              🔍
+            </button>
             <button onClick={toggleFullscreen} className="text-white hover:text-indigo-300 p-1">
               {isFullscreen ? <MdFullscreenExit size={20} /> : <MdFullscreen size={20} />}
             </button>
@@ -282,25 +290,32 @@ export default function FlipbookPage() {
       )}
 
       {/* Mobile — CSS 3D flip */}
+      {/* Mobile — CSS 3D flip */}
       {ready && isPortrait && (
         <div
           className="flex items-center justify-center"
-          style={{ marginTop: 60, marginBottom: 68, minHeight: `calc(100vh - 128px)` }}
+          style={{
+            marginTop: 60, marginBottom: 68, minHeight: `calc(100vh - 128px)`,
+            overflow: 'auto', touchAction: zoom > 1 ? 'pinch-zoom' : 'pan-y'
+          }}
         >
-          <MobileFlipPage
-            frontSrc={pages[displayPage]}
-            backSrc={pages[flipDir === 'next' ? displayPage + 1 : displayPage - 1]}
-            width={pageW}
-            height={pageH}
-            flipping={flipping}
-            direction={flipDir}
-          />
+          <div style={{ transform: `scale(${zoom})`, transition: 'transform 0.25s ease' }}>
+            <MobileFlipPage
+              frontSrc={pages[displayPage]}
+              backSrc={pages[flipDir === 'next' ? displayPage + 1 : displayPage - 1]}
+              width={pageW}
+              height={pageH}
+              flipping={flipping}
+              direction={flipDir}
+            />
+          </div>
         </div>
       )}
 
       {/* Desktop — react-pageflip */}
       {ready && !isPortrait && (
-        <div className="flex items-center justify-center" style={{ marginTop: 56, marginBottom: 68, perspective: 2000 }}>
+       <div className="flex items-center justify-center" style={{ marginTop: 56, marginBottom: 68, perspective: 2000, overflow: 'auto' }}>
+          <div style={{ transform: `scale(${zoom})`, transition: 'transform 0.25s ease' }}>
           <HTMLFlipBook
             ref={flipBook}
             width={pageW}
@@ -324,10 +339,10 @@ export default function FlipbookPage() {
             {pages.map((imgSrc, i) => (
               <BookPage key={i} imgSrc={imgSrc} pageNum={i + 1} width={pageW} height={pageH} />
             ))}
-          </HTMLFlipBook>
+         </HTMLFlipBook>
+          </div>
         </div>
       )}
-
       {/* Controls */}
       <AnimatePresence>
         {showControls && (
