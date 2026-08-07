@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const slugify = require('slugify');
 
 const categorySchema = new mongoose.Schema({
   name: {
@@ -9,8 +8,7 @@ const categorySchema = new mongoose.Schema({
     maxlength: [100, 'Name cannot exceed 100 characters']
   },
   slug: {
-    type: String,
-    unique: true
+    type: String
   },
   parentId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -21,20 +19,28 @@ const categorySchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  isActive: {
-    type: Boolean,
-    default: true
-  },
   coverKey: {
     type: String,
     default: null
   },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  location: {
+    latitude: { type: Number, default: null },
+    longitude: { type: Number, default: null },
+    address: { type: String, default: '' }
+  }
 }, { timestamps: true });
 
-// Auto-generate slug
+// Auto-generate slug without slugify package
 categorySchema.pre('save', function (next) {
   if (this.isModified('name')) {
-    this.slug = slugify(this.name, { lower: true, strict: true }) + '-' + Date.now();
+    this.slug = this.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') + '-' + Date.now();
   }
   next();
 });

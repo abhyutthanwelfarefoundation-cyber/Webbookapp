@@ -3,12 +3,13 @@ const Book = require('../models/Book');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/AppError');
 const sendResponse = require('../utils/sendResponse');
+const { uploadToS3 } = require('../services/s3Service');
 
-// @GET /api/categories  — full tree
+const SUPABASE = 'https://etvgnlxumsytyhqtezmb.supabase.co/storage/v1/object/public/digital-books';
+
+// @GET /api/categories — full tree
 exports.getAllCategories = catchAsync(async (req, res) => {
   const categories = await Category.find({ isActive: true }).sort('order name');
-
-  const SUPABASE = 'https://adoiilauzxxffnwlnono.supabase.co/storage/v1/object/public/digital-books';
 
   const withCovers = categories.map(cat => ({
     ...cat.toObject(),
@@ -17,7 +18,7 @@ exports.getAllCategories = catchAsync(async (req, res) => {
 
   const buildTree = (items, parentId = null) =>
     items
-      .filter(i => String(i.parentId) === String(parentId))
+      .filter(i => String(i.parentId || null) === String(parentId))
       .map(i => ({ ...i, children: buildTree(items, i._id) }));
 
   const tree = buildTree(withCovers);
@@ -40,15 +41,13 @@ exports.getCategory = catchAsync(async (req, res, next) => {
   sendResponse(res, 200, { category });
 });
 
-// @POST /api/categories  (Admin only)
+// @POST /api/categories (Admin only)
 exports.createCategory = catchAsync(async (req, res) => {
   const { name, parentId, order } = req.body;
 
   let coverKey = null;
   if (req.file) {
-    const { uploadToS3, keys } = require('../services/s3Service');
-    const tempId = new Date().getTime().toString();
-    coverKey = `categories/${tempId}-cover.jpg`;
+    coverKey = `categories/${Date.now()}-cover.jpg`;
     await uploadToS3(coverKey, req.file.buffer, req.file.mimetype);
   }
 
@@ -62,7 +61,7 @@ exports.createCategory = catchAsync(async (req, res) => {
   sendResponse(res, 201, { category }, 'Category created');
 });
 
-// @PUT /api/categories/:id  (Admin only)
+// @PUT /api/categories/:id (Admin only)
 exports.updateCategory = catchAsync(async (req, res, next) => {
   const { name, parentId, order, isActive } = req.body;
 
@@ -70,43 +69,41 @@ exports.updateCategory = catchAsync(async (req, res, next) => {
     return next(new AppError('Category cannot be its own parent.', 400));
   }
 
-  let updateData = { name, isActive };
-  if (parentId !== undefined) updateData.parentId = parentId || null;
-  if (order !== undefined) updateData.order = order;
+  const category = await Category.findById(req.params.id);
+  if (!category) return next(new AppError('Category not found.', 404));
 
-  // Handle new cover image upload
+  // Update fields
+  if (name !== undefined) category.name = name;
+  if (parentId !== undefined) category.parentId = parentId || null;
+  if (order !== undefined) category.order = order;
+  if (isActive !== undefined) category.isActive = isActive;
+
+  // Handle cover upload
   if (req.file) {
-    const { uploadToS3 } = require('../services/s3Service');
-    const coverKey = `categories/${req.params.id}-cover${Date.now()}.jpg`;
+    const coverKey = `categories/${req.params.id}-cover-${Date.now()}.jpg`;
     await uploadToS3(coverKey, req.file.buffer, req.file.mimetype);
-    updateData.coverKey = coverKey;
+    category.coverKey = coverKey;
   }
 
-  const category = await Category.findByIdAndUpdate(
-    req.params.id,
-    updateData,
-    { new: true, runValidators: true }
-  );
+  await category.save({ validateBeforeSave: false });
 
-  if (!category) return next(new AppError('Category not found.', 404));
-  sendResponse(res, 200, { category }, 'Category updated');
+  const obj = category.toObject();
+  if (category.coverKey) obj.coverUrl = `${SUPABASE}/${category.coverKey}`;
+
+  sendResponse(res, 200, { category: obj }, 'Category updated');
 });
 
-// @DELETE /api/categories/:id  (Admin only)
+// @DELETE /api/categories/:id (Admin only)
 exports.deleteCategory = catchAsync(async (req, res, next) => {
   const category = await Category.findById(req.params.id);
   if (!category) return next(new AppError('Category not found.', 404));
 
-  // Check for child categories
   const hasChildren = await Category.exists({ parentId: req.params.id });
   if (hasChildren) return next(new AppError('Remove child categories first.', 400));
 
-  // Check for books
   const hasBooks = await Book.exists({ categoryId: req.params.id });
   if (hasBooks) return next(new AppError('Move or delete books in this category first.', 400));
 
   await category.deleteOne();
   sendResponse(res, 200, {}, 'Category deleted');
 });
-
-

@@ -12,7 +12,7 @@ export default function CategoryPage() {
   const { id }   = useParams();
   const navigate = useNavigate();
 
-  const { data: category } = useQuery({
+  const { data: category } = useQuery({   
     queryKey: ['category', id],
     queryFn: async () => {
       const res = await api.get('/categories');
@@ -47,7 +47,7 @@ export default function CategoryPage() {
         <HiOutlineChevronRight className="w-4 h-4" />
         <span className="text-gray-900 font-medium">{category?.name || 'Loading...'}</span>
       </div>
-
+    
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => navigate(-1)}
           className="p-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 transition-colors">

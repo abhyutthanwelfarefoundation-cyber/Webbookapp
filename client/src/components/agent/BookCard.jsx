@@ -6,7 +6,7 @@ const isMobileView = window.innerWidth < 640;
 
 pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
-const SUPABASE_URL = 'https://adoiilauzxxffnwlnono.supabase.co/storage/v1/object/public/digital-books';
+const SUPABASE_URL = 'https://etvgnlxumsytyhqtezmb.supabase.co/storage/v1/object/public/digital-books';
 
 const GRADIENTS = [
   ['#1e3a5f','#2563eb'],['#3b1f5e','#7c3aed'],['#064e3b','#10b981'],

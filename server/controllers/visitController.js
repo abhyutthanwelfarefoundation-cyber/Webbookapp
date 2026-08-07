@@ -4,7 +4,7 @@ const AppError = require('../utils/AppError');
 const sendResponse = require('../utils/sendResponse');
 const { uploadToS3 } = require('../services/s3Service');
 
-const SUPABASE = 'https://adoiilauzxxffnwlnono.supabase.co/storage/v1/object/public/digital-books';
+const SUPABASE = 'https://etvgnlxumsytyhqtezmb.supabase.co/storage/v1/object/public/digital-books';
 
 // @POST /api/visits — agent logs a visit
 exports.createVisit = catchAsync(async (req, res, next) => {
